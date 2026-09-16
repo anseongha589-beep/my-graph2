@@ -1,4 +1,4 @@
-
+```python
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -237,9 +237,11 @@ treemap_df = df[
 ].copy()
 
 
-# 총 관객수가 0인 데이터는 트리맵에서 의미가 없으므로
-# 아주 작은 값으로 처리해 모든 영화를 표시
-treemap_df["treemap_audi"] = treemap_df["total_audi"].clip(lower=1)
+# 총 관객수가 0인 데이터는
+# 트리맵에서 표시될 수 있도록 1로 처리
+treemap_df["treemap_audi"] = (
+    treemap_df["total_audi"].clip(lower=1)
+)
 
 
 fig_treemap = px.treemap(
@@ -259,7 +261,6 @@ fig_treemap = px.treemap(
 )
 
 
-# 마우스를 올렸을 때 표시되는 내용
 fig_treemap.update_traces(
     hovertemplate=(
         "<b>%{customdata[0]}</b><br>"
@@ -312,6 +313,142 @@ with st.expander("🔎 트리맵 보는 방법"):
 
 
 # ==================================================
+# 그래프 3. 총 관객수 히스토그램
+# ==================================================
+st.markdown("---")
+st.header("3️⃣ 영화별 총 관객수 분포")
+
+st.markdown(
+    """
+    영화들의 **총 관객수(total_audi)**가 어떤 구간에 많이 분포하는지
+    히스토그램으로 확인합니다.
+    """
+)
+
+
+# --------------------------------------------------
+# 히스토그램용 데이터
+# --------------------------------------------------
+hist_df = df[
+    ["movieNm", "total_audi"]
+].copy()
+
+hist_df = hist_df[
+    hist_df["total_audi"] > 0
+].copy()
+
+
+# 데이터가 있는 경우에만 그래프 생성
+if len(hist_df) > 0:
+
+    # --------------------------------------------------
+    # 관객수가 가장 많은 영화
+    # --------------------------------------------------
+    max_movie_row = hist_df.loc[
+        hist_df["total_audi"].idxmax()
+    ]
+
+    max_movie_name = max_movie_row["movieNm"]
+    max_movie_audi = int(max_movie_row["total_audi"])
+
+
+    # --------------------------------------------------
+    # 히스토그램
+    # --------------------------------------------------
+    fig_hist = px.histogram(
+        hist_df,
+        x="total_audi",
+        nbins=15,
+        title="총 관객수 분포",
+        labels={
+            "total_audi": "총 관객수",
+            "count": "영화 편수"
+        }
+    )
+
+    fig_hist.update_traces(
+        hovertemplate=(
+            "총 관객수 구간: %{x}<br>"
+            "영화 편수: %{y}편"
+            "<extra></extra>"
+        )
+    )
+
+    fig_hist.update_layout(
+        height=600,
+        xaxis_title="총 관객수",
+        yaxis_title="영화 편수",
+        bargap=0.08
+    )
+
+    st.plotly_chart(
+        fig_hist,
+        use_container_width=True
+    )
+
+
+    # --------------------------------------------------
+    # 가장 많은 영화가 몰린 구간 계산
+    # --------------------------------------------------
+    counts, bin_edges = pd.cut(
+        hist_df["total_audi"],
+        bins=15,
+        include_lowest=True,
+        retbins=True
+    ).value_counts().sort_index(), None
+
+
+    # 실제 구간별 영화 편수 계산
+    bins = pd.cut(
+        hist_df["total_audi"],
+        bins=15,
+        include_lowest=True
+    )
+
+    bin_counts = bins.value_counts().sort_index()
+
+    most_common_bin = bin_counts.idxmax()
+
+    lower_bound = int(most_common_bin.left)
+    upper_bound = int(most_common_bin.right)
+
+    most_common_count = int(
+        bin_counts.max()
+    )
+
+
+    # --------------------------------------------------
+    # 그래프 아래 설명 문구
+    # --------------------------------------------------
+    st.success(
+        f"📌 **대부분의 영화가 몰려 있는 구간:** "
+        f"{lower_bound:,}명 ~ {upper_bound:,}명 "
+        f"(이 구간에 {most_common_count}편)"
+    )
+
+    st.warning(
+        f"🏆 **가장 관객이 많은 영화:** "
+        f"**{max_movie_name}** — "
+        f"총 관객 **{max_movie_audi:,}명**"
+    )
+
+
+    # --------------------------------------------------
+    # 그래프로 알 수 있는 것
+    # --------------------------------------------------
+    st.info(
+        "💡 **이 그래프로 알 수 있는 것:** "
+        "대부분의 영화가 어느 총 관객수 구간에 몰려 있는지와 "
+        "가장 많은 관객을 기록한 영화를 알 수 있습니다."
+    )
+
+else:
+    st.warning(
+        "총 관객수 데이터가 없어 히스토그램을 만들 수 없습니다."
+    )
+
+
+# ==================================================
 # 원본 데이터
 # ==================================================
 st.markdown("---")
@@ -322,4 +459,4 @@ with st.expander("📁 원본 데이터 보기"):
         use_container_width=True,
         hide_index=True
     )
-
+```
