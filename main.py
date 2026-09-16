@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -227,7 +226,9 @@ st.markdown(
 )
 
 
+# --------------------------------------------------
 # 트리맵용 데이터 준비
+# --------------------------------------------------
 treemap_df = df[
     [
         "genre",
@@ -338,7 +339,9 @@ hist_df = hist_df[
 ].copy()
 
 
+# --------------------------------------------------
 # 데이터가 있는 경우에만 그래프 생성
+# --------------------------------------------------
 if len(hist_df) > 0:
 
     # --------------------------------------------------
@@ -366,6 +369,7 @@ if len(hist_df) > 0:
         }
     )
 
+    # 마우스를 올렸을 때 정보 표시
     fig_hist.update_traces(
         hovertemplate=(
             "총 관객수 구간: %{x}<br>"
@@ -390,22 +394,17 @@ if len(hist_df) > 0:
     # --------------------------------------------------
     # 가장 많은 영화가 몰린 구간 계산
     # --------------------------------------------------
-    counts, bin_edges = pd.cut(
-        hist_df["total_audi"],
-        bins=15,
-        include_lowest=True,
-        retbins=True
-    ).value_counts().sort_index(), None
-
-
-    # 실제 구간별 영화 편수 계산
     bins = pd.cut(
         hist_df["total_audi"],
         bins=15,
         include_lowest=True
     )
 
-    bin_counts = bins.value_counts().sort_index()
+    bin_counts = (
+        bins
+        .value_counts()
+        .sort_index()
+    )
 
     most_common_bin = bin_counts.idxmax()
 
@@ -454,9 +453,9 @@ else:
 st.markdown("---")
 
 with st.expander("📁 원본 데이터 보기"):
+
     st.dataframe(
         df,
         use_container_width=True,
         hide_index=True
     )
-
