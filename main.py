@@ -239,8 +239,6 @@ treemap_df = df[
 ].copy()
 
 
-# 총 관객수가 0인 데이터는
-# 트리맵에서 표시될 수 있도록 1로 처리
 treemap_df["treemap_audi"] = (
     treemap_df["total_audi"].clip(lower=1)
 )
@@ -321,9 +319,6 @@ st.markdown("---")
 st.header("3️⃣ 총 관객의 분포 (히스토그램)")
 
 
-# --------------------------------------------------
-# 히스토그램용 데이터
-# --------------------------------------------------
 hist_df = df[
     ["movieNm", "total_audi"]
 ].copy()
@@ -369,9 +364,6 @@ if len(hist_df) > 0:
     )
 
 
-    # --------------------------------------------------
-    # 마우스 오버
-    # --------------------------------------------------
     fig_hist.update_traces(
         hovertemplate=(
             "총 관객 수: %{x}<br>"
@@ -381,9 +373,6 @@ if len(hist_df) > 0:
     )
 
 
-    # --------------------------------------------------
-    # 그래프 모양
-    # --------------------------------------------------
     fig_hist.update_layout(
         height=600,
         xaxis_title="총 관객 수",
@@ -399,7 +388,7 @@ if len(hist_df) > 0:
 
 
     # --------------------------------------------------
-    # 사진처럼 한 문장으로 설명
+    # 그래프 설명
     # --------------------------------------------------
     st.markdown(
         f"""
@@ -410,9 +399,6 @@ if len(hist_df) > 0:
     )
 
 
-    # --------------------------------------------------
-    # 그래프 3 알 수 있는 것
-    # --------------------------------------------------
     st.markdown(
         "💡 **이 그래프로 알 수 있는 것:** "
         "____________________________________________________________"
@@ -442,9 +428,6 @@ st.markdown(
 )
 
 
-# --------------------------------------------------
-# 산점도용 데이터
-# --------------------------------------------------
 scatter_df = df[
     [
         "movieNm",
@@ -461,9 +444,6 @@ scatter_df = scatter_df[
 ].copy()
 
 
-# --------------------------------------------------
-# 산점도
-# --------------------------------------------------
 if len(scatter_df) > 0:
 
     fig_scatter = px.scatter(
@@ -490,13 +470,6 @@ if len(scatter_df) > 0:
         marker=dict(
             size=10,
             opacity=0.75
-        ),
-        hovertemplate=(
-            "<b>%{hovertext}</b><br>"
-            "개봉일 스크린수: %{x:,}개<br>"
-            "총 관객수: %{y:,}명<br>"
-            "장르: %{customdata[2]}"
-            "<extra></extra>"
         )
     )
 
@@ -515,9 +488,6 @@ if len(scatter_df) > 0:
     )
 
 
-    # --------------------------------------------------
-    # 그래프 4 알 수 있는 것
-    # --------------------------------------------------
     st.info(
         "💡 **이 그래프로 알 수 있는 것:** "
         "개봉일 스크린수와 총 관객수 사이에 어떤 관계가 있는지 "
@@ -542,14 +512,14 @@ st.markdown(
     **영화가 10편 이상인 장르만** 골라 장르별 총 관객수의 분포를
     상자 그림(박스플롯)으로 비교합니다.
 
-    상자 밖으로 튀어나온 점은 **이상치 영화**이며,
-    점에 마우스를 올리면 **영화명과 총 관객수**를 확인할 수 있습니다.
+    상자 밖으로 튀어나온 점은 **이상치**입니다.
+    이상치에 마우스를 올리면 **영화명과 총 관객수**를 확인할 수 있습니다.
     """
 )
 
 
 # --------------------------------------------------
-# 장르별 영화 수 계산
+# 장르별 영화 수
 # --------------------------------------------------
 genre_movie_counts = (
     df["genre"]
@@ -564,137 +534,97 @@ valid_genres = genre_movie_counts[
 
 
 # --------------------------------------------------
-# 박스플롯용 데이터
+# 박스플롯 데이터
 # --------------------------------------------------
 box_df = df[
     df["genre"].isin(valid_genres)
 ].copy()
 
 
-# 로그 스케일을 사용하기 때문에
-# 총 관객수가 0인 영화는 제외
+# 총 관객수가 0인 데이터는
+# 실제 관객수 분포를 보는 데 의미가 없으므로 제외
 box_df = box_df[
     box_df["total_audi"] > 0
 ].copy()
 
 
-# --------------------------------------------------
-# 데이터가 있는 경우
-# --------------------------------------------------
-if len(box_df) > 0 and len(valid_genres) > 0:
-
-    fig_box = go.Figure()
-
+if len(box_df) > 0:
 
     # --------------------------------------------------
-    # 장르별 박스플롯
+    # 장르 순서를 영화 편수가 많은 순서로 유지
     # --------------------------------------------------
-    for genre_name in valid_genres:
-
-        genre_data = box_df[
-            box_df["genre"] == genre_name
-        ].copy()
-
-        values = genre_data["total_audi"].dropna()
-
-
-        if len(values) == 0:
-            continue
-
-
-        # --------------------------------------------------
-        # 박스플롯
-        # --------------------------------------------------
-        fig_box.add_trace(
-            go.Box(
-                x=[genre_name] * len(values),
-                y=values,
-                name=genre_name,
-                boxpoints=False,
-                quartilemethod="linear",
-                hovertemplate=(
-                    f"<b>{genre_name}</b><br>"
-                    "총 관객수: %{y:,}명"
-                    "<extra></extra>"
-                )
-            )
-        )
-
-
-        # --------------------------------------------------
-        # 이상치 계산
-        # IQR = Q3 - Q1
-        # 이상치 기준:
-        # Q1 - 1.5*IQR보다 작거나
-        # Q3 + 1.5*IQR보다 큰 값
-        # --------------------------------------------------
-        q1 = values.quantile(0.25)
-        q3 = values.quantile(0.75)
-
-        iqr = q3 - q1
-
-        lower_limit = q1 - 1.5 * iqr
-        upper_limit = q3 + 1.5 * iqr
-
-
-        outlier_df = genre_data[
-            (genre_data["total_audi"] < lower_limit) |
-            (genre_data["total_audi"] > upper_limit)
-        ].copy()
-
-
-        # --------------------------------------------------
-        # 이상치 점
-        # --------------------------------------------------
-        if len(outlier_df) > 0:
-
-            fig_box.add_trace(
-                go.Scatter(
-                    x=[genre_name] * len(outlier_df),
-                    y=outlier_df["total_audi"],
-                    mode="markers",
-                    name=f"{genre_name} 이상치",
-                    showlegend=False,
-                    marker=dict(
-                        size=8
-                    ),
-                    customdata=outlier_df[
-                        [
-                            "movieNm",
-                            "genre",
-                            "total_audi"
-                        ]
-                    ].to_numpy(),
-                    hovertemplate=(
-                        "<b>%{customdata[0]}</b><br>"
-                        "장르: %{customdata[1]}<br>"
-                        "총 관객수: %{customdata[2]:,}명"
-                        "<extra></extra>"
-                    )
-                )
-            )
-
-
-    # --------------------------------------------------
-    # 그래프 설정
-    # --------------------------------------------------
-    fig_box.update_layout(
-        title="영화 10편 이상인 장르의 총 관객수 분포",
-        height=700,
-        xaxis_title="장르",
-        yaxis_title="총 관객수",
-        showlegend=False,
-        boxmode="group"
+    box_df["genre"] = pd.Categorical(
+        box_df["genre"],
+        categories=valid_genres,
+        ordered=True
     )
 
 
     # --------------------------------------------------
-    # ★ 세로축 로그 스케일
+    # 박스플롯
+    # --------------------------------------------------
+    fig_box = px.box(
+        box_df,
+        x="genre",
+        y="total_audi",
+        points="outliers",
+        custom_data=[
+            "movieNm",
+            "genre",
+            "total_audi"
+        ],
+        category_orders={
+            "genre": valid_genres
+        },
+        labels={
+            "genre": "장르",
+            "total_audi": "총 관객수"
+        },
+        title="영화 10편 이상인 장르의 총 관객수 분포"
+    )
+
+
+    # --------------------------------------------------
+    # 마우스 오버
+    # --------------------------------------------------
+    fig_box.update_traces(
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            "장르: %{customdata[1]}<br>"
+            "총 관객수: %{customdata[2]:,}명"
+            "<extra></extra>"
+        ),
+        marker=dict(
+            size=7
+        ),
+        line=dict(
+            width=2
+        )
+    )
+
+
+    # --------------------------------------------------
+    # ★ 일반적인 선형 박스플롯
     # --------------------------------------------------
     fig_box.update_yaxes(
-        type="log",
-        title_text="총 관객수 (로그 스케일)",
-        tickformat=".0s"
+        type="linear",
+        title_text="총 관객수",
+        tickformat=",.0f"
+    )
+
+
+    fig_box.update_layout(
+        height=650,
+        xaxis_title="장르",
+        yaxis_title="총 관객수",
+        showlegend=False,
+        boxmode="group",
+        margin=dict(
+            l=70,
+            r=30,
+            t=70,
+            b=70
+        )
     )
 
 
@@ -705,15 +635,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
 
     # --------------------------------------------------
-    # 로그 스케일 안내
-    # --------------------------------------------------
-    st.caption(
-        "※ 총 관객수의 차이가 매우 크기 때문에 세로축을 로그 스케일로 표시했습니다."
-    )
-
-
-    # --------------------------------------------------
-    # 포함된 장르 안내
+    # 포함된 장르
     # --------------------------------------------------
     valid_genres_text = ", ".join(valid_genres)
 
