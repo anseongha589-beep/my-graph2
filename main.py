@@ -543,7 +543,7 @@ st.markdown(
     상자 그림(박스플롯)으로 비교합니다.
 
     상자 밖으로 튀어나온 점은 **이상치 영화**이며,
-    점에 마우스를 올리면 **영화명**을 확인할 수 있습니다.
+    점에 마우스를 올리면 **영화명과 총 관객수**를 확인할 수 있습니다.
     """
 )
 
@@ -570,13 +570,16 @@ box_df = df[
     df["genre"].isin(valid_genres)
 ].copy()
 
+
+# 로그 스케일을 사용하기 때문에
+# 총 관객수가 0인 영화는 제외
 box_df = box_df[
-    box_df["total_audi"] >= 0
+    box_df["total_audi"] > 0
 ].copy()
 
 
 # --------------------------------------------------
-# 그래프 생성
+# 데이터가 있는 경우
 # --------------------------------------------------
 if len(box_df) > 0 and len(valid_genres) > 0:
 
@@ -584,7 +587,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
 
     # --------------------------------------------------
-    # 장르별 박스플롯 생성
+    # 장르별 박스플롯
     # --------------------------------------------------
     for genre_name in valid_genres:
 
@@ -608,6 +611,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
                 y=values,
                 name=genre_name,
                 boxpoints=False,
+                quartilemethod="linear",
                 hovertemplate=(
                     f"<b>{genre_name}</b><br>"
                     "총 관객수: %{y:,}명"
@@ -619,6 +623,10 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
         # --------------------------------------------------
         # 이상치 계산
+        # IQR = Q3 - Q1
+        # 이상치 기준:
+        # Q1 - 1.5*IQR보다 작거나
+        # Q3 + 1.5*IQR보다 큰 값
         # --------------------------------------------------
         q1 = values.quantile(0.25)
         q3 = values.quantile(0.75)
@@ -636,7 +644,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
 
         # --------------------------------------------------
-        # 이상치 점 추가
+        # 이상치 점
         # --------------------------------------------------
         if len(outlier_df) > 0:
 
@@ -648,7 +656,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
                     name=f"{genre_name} 이상치",
                     showlegend=False,
                     marker=dict(
-                        size=7
+                        size=8
                     ),
                     customdata=outlier_df[
                         [
@@ -668,7 +676,7 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
 
     # --------------------------------------------------
-    # 박스플롯 레이아웃
+    # 그래프 설정
     # --------------------------------------------------
     fig_box.update_layout(
         title="영화 10편 이상인 장르의 총 관객수 분포",
@@ -681,16 +689,26 @@ if len(box_df) > 0 and len(valid_genres) > 0:
 
 
     # --------------------------------------------------
-    # 세로축 숫자 표시를 보기 좋게
+    # ★ 세로축 로그 스케일
     # --------------------------------------------------
     fig_box.update_yaxes(
-        tickformat="~s"
+        type="log",
+        title_text="총 관객수 (로그 스케일)",
+        tickformat=".0s"
     )
 
 
     st.plotly_chart(
         fig_box,
         use_container_width=True
+    )
+
+
+    # --------------------------------------------------
+    # 로그 스케일 안내
+    # --------------------------------------------------
+    st.caption(
+        "※ 총 관객수의 차이가 매우 크기 때문에 세로축을 로그 스케일로 표시했습니다."
     )
 
 
